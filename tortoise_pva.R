@@ -128,17 +128,22 @@ for (j in 1:nreps){ # for each replicate
 matplot(N, type = 'l', log="y",
         xlab = 'Time (years)', ylab = 'Total population')
 
+# This projection works well at tracking total population size,
+# but does not track population structure through time.
 
 
 
 
-
+##### Project and track population structure -----
 
 ## Specify features of simulation
 nreps <- 10
 nyears <- 50
+nstages <- dim(A)[1]
+
+# Matrices to save population size and structure
 N_tot <- matrix(0, nyears, nreps)
-N <- array(0, c(nreps, nyears, dim(A)[1]))
+N_stages <- array(0, c(nyears, nreps, nstages))
 # array to save population structure across years, reps, and ages
 
 ## Initial population size and structure
@@ -166,11 +171,20 @@ x_F <- x$F
 
 ## Run the simulation!
 for (j in 1:nreps){ # for each replicate
-  n <- n_i[j,] # specify initial population size, randomly drawn above
+  n_i_j <- n_i[j,] # specify initial population size, randomly drawn above
   for (i in 1:nyears){ # for each year
-    N[j,i,] <- multiresultm(n, x_T, x_F)
-    N_tot[i,j] <- sum(N[j,i,])
+    # If it's the first year, specify n_i_j; else,
+    #   specify N_stage from previous yeaar
+    if(i ==1){
+      n_sim <- n_i_j
+    } else {
+        n_sim <- N_stages[i-1,j,]
+        }
+    N_stages[i,j,] <- multiresultm(n_sim, x_T, x_F) # project pop
+    N_tot[i,j] <- sum(N_stages[i,j,]) # save N
   } #year
 } #rep
 matplot(N_tot, type = 'l', log="y",
         xlab = 'Time (years)', ylab = 'Total population')
+
+# This works well, and we can track age-specific abundances
