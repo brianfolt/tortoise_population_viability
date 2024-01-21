@@ -59,7 +59,7 @@ A1 <- mpmtools::make_Leslie_matrix(demog_sched, model = "pre")
 
 # Calculate the asymptotic growth rate of the population governed by this 
 #   demography schedule:
-lambda1(A1)
+popbio::lambda(A1)
 
 
 
@@ -81,7 +81,7 @@ demog_sched[1:(ma-1), "sx"] <- s_j
 demog_sched[ma, "sx"] <- s_a
 
 # Construct a Leslie matrix from this demography schedule
-A <- make_Leslie_matrix(demog_sched)
+A <- mpmtools::make_Leslie_matrix(demog_sched)
 
 ## Demographic features
 
@@ -160,4 +160,4 @@ matplot(N_tot, type = 'l', log="y",
 
 # This works well, and we can track age-specific abundances.
 
-
+N_stages[i,,ma-1]

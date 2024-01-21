@@ -55,7 +55,7 @@ ui <- fluidPage(
   
     tags$head(HTML("<title>Tortoise PVA Tool</title>")),
   
-    strong(h4("Tortoise PVA Tool")),
+    strong(h3("Tortoise PVA Tool")),
     #includeMarkdown("tort_pva_app/header.Rmd"),
     p(strong("Gopher tortoise"), " populations experience ", strong("varying demographic conditions"), "across the species' range in the southeastern United States. This page comprises a ", strong("flexible tool"), " that allows users to ", strong("simulate tortoise population dynamics"), " under varying conditions of demographic rates. Specifically, populations experience latitudinal variation in maturity age and fecundity, where more southern populations have faster somatic growth rates, reach sexual maturity at young ages, and lay larger clutches of eggs likely due to increased energy assimilation. To accommodate variation in life history, the user can ", strong("adjust mean estimates"), " of maturity age, fecundity (clutch size), and survival rates of different life history stages (nests, hatchlings, juveniles, adults). The juvenile stage includes all 1-year old animals up to the year prior to the maturity age. The software flexibly 'unwinds' the demographic rates to appropriate ages and projects the population using an age-based model. The model is a ",
     strong("female-only model"), " and assumes a ", strong("pre-breeding census.")),
@@ -72,6 +72,7 @@ ui <- fluidPage(
         numericInput("s_j", "Probability of juvenile survival:", 0.8, 0, 1, step=0.01),
         numericInput("s_a", "Probability of adult survival:", 0.98, 0, 1, step=0.01),
         numericInput("n", "Initial population size:", 50, 0, 10000, step=1),
+        numericInput("pp", "Population persistence threshold (minimum adult females):", 3, 1, 100, step=1),
         br(),
         h4(p(strong("Simulation Inputs"))),
         numericInput("nyears", "Projection interval (years)", 50, 1, 100),
@@ -102,7 +103,10 @@ ui <- fluidPage(
         verbatimTextOutput("rv"),
         br(),
         verbatimTextOutput("elas_title"),
-        verbatimTextOutput("elas")
+        verbatimTextOutput("elas"),
+        br(),
+        verbatimTextOutput("persist_title"),
+        verbatimTextOutput("persist")
         ),
       
     ), #sidebar
@@ -120,7 +124,7 @@ server <- function(input, output, session) {
       req(input$ma, input$bp, input$f, input$ns, input$ve, input$pf,
           input$s_h, input$s_j, input$s_a,
           # Simulation inputs
-          input$nyears, input$nreps)
+          input$nyears, input$nreps, input$n, input$pp)
       
       withProgress(message = "Simulating population growth...", {
       
@@ -182,6 +186,8 @@ server <- function(input, output, session) {
       
       # Starting population size
       n <- input$n
+      pp <- input$pp
+      
       
       # Simulation parameters
       nyears <- input$nyears
@@ -233,12 +239,19 @@ server <- function(input, output, session) {
         } #year
       } #rep
       
+      # Persistence probability in the final year
+      N_adult_t <- N_stages[i,,ma-1]
+      persistence <- ifelse(N_adult_t > pp-1, 1, 0)
+      persist.prob <- sum(persistence)/nreps
+      demo_vars <- c(demo_vars, persist.prob)
+      
       # Save a vector of demographic rate titles
       demo_titles <- c(c("Population growth rate (lambda):"),
                        c("Generation time (years):"),
                        c("Stable age distribution:"),
                        c("Reproductive value of ages:"),
-                       c("Elasticities for demographic rates:")
+                       c("Elasticities for demographic rates:"),
+                       c("Population persistence probability in the final year:")
                        )
       
       ### Save the data so they can be used
@@ -396,6 +409,29 @@ output$elas <- renderText({
   # Save text
   t(data.frame(names(elas), round(elas, 2)))
 
+})
+
+## Summary text - elasticities
+output$persist_title <- renderText({
+  
+  # Recall the parameter name
+  demo_titles <- dat()[[3]]
+  demo_titles[6]
+  
+})
+
+## Summary text - elasticities
+output$persist <- renderText({
+  
+  # Recall some parameters
+  demo_vars <- dat()[[2]]
+  
+  # Elasticities
+  persist <- demo_vars[[6]]
+  
+  # Save text
+  round(persist, 3)
+  
 })
 
 
