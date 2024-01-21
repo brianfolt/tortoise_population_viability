@@ -40,6 +40,7 @@ s_a <- 0.96
 
 # Create a demography schedule, with juvenile and mature age classes
 # The model has a pre-breeding census
+ma <- ma + 1
 demog_sched <- data.frame(x = 1:ma,
                           sx = rep(NA, length(1:ma)),
                           mx = rep(NA, length(1:ma)))
@@ -53,7 +54,8 @@ demog_sched[1:(ma-1), "sx"] <- s_j
 demog_sched[ma, "sx"] <- s_a
 
 # Construct a Leslie matrix from this demography schedule
-A1 <- make_Leslie_matrix(demog_sched)
+A1 <- mpmtools::make_Leslie_matrix(demog_sched, model = "pre")
+
 
 # Calculate the asymptotic growth rate of the population governed by this 
 #   demography schedule:
@@ -97,6 +99,10 @@ names(elas.values) <- c(paste0("S_", 1:(length(elas.values)-1)), "Fecundity")
 
 # Save the demographic variables together
 demo_vars <- list(lam, ssd, generation.time, rv, elas.values)
+
+lam
+generation.time
+ssd
 
 
 ##### Project and track population structure -----

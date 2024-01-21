@@ -94,6 +94,7 @@ shinyApp(
         
         # Create a demography schedule, with juvenile and mature age classes
         # The model has a pre-breeding census
+        ma <- ma + 1
         demog_sched <- data.frame(x = 1:ma,
                                   sx = rep(NA, length(1:ma)),
                                   mx = rep(NA, length(1:ma)))

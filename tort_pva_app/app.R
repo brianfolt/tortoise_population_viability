@@ -1,9 +1,13 @@
 # Gopher tortoise PVA app
 
+# This app can be deployed on GitHub pages using instructions from:
+# https://medium.com/@rami.krispin/deploy-shiny-app-on-github-pages-b4cbd433bdc
+
 # Call a package
 library(popbio)
 
-# Specify the 'subdiag()' function from Bruce Kendall's mpmtools package
+# Specify two functions from Bruce Kendall's mpmtools package:
+#    'subdiag()' function and 'make_Leslie_matrix()'
 subdiag <- function(A, sx) {
   if (is.null(dim(A))) {
     A <- matrix(0, A, A)
@@ -17,7 +21,6 @@ subdiag <- function(A, sx) {
   return(B + A)
 }
 
-# Specify the 'make_Leslie_matrix()' function from Bruce Kendall's mpmtools package
 make_Leslie_matrix <- function(x, sx = NULL, mx = NULL, model = c("pre", "post")) {
   if(is.data.frame(x)) {
     stopifnot(c("x", "sx", "mx") %in% names(x))
@@ -38,8 +41,9 @@ make_Leslie_matrix <- function(x, sx = NULL, mx = NULL, model = c("pre", "post")
   return(A)
 }
 
-# Specify the UI
+##### Specify the UI -----
 ui <- fluidPage(
+
     #includeMarkdown("header.Rmd"),
   
     p(em("Gopherus polyphemus"), "(gopher tortoise) populations experience varying demographic conditions across the species' range in the southeastern United States. This page comprises a flexible tool that allows users to simulate tortoise population growth and dynamics under varying conditions of demographic rates. Specifically, populations experience latitudinal variation in maturity age and fecundity, where more southern populations have faster somatic growth rates, reach sexual maturity at young ages, and lay larger clutches of eggs likely due to increased energy assimilation. To accommodate variation in life history, the user can adjust mean estimates of maturity age, fecundity (clutch size), and survival rates of different life history stages (nests, hatchlings, juveniles, adults). The juvenile stage includes all 1-year old animals up to the year prior to the maturity age. The software flexibly 'unwinds' the demographic rates to appropriate ages and projects the population using an age-based model The model is a female-only model and assumes a pre-breeding census."),
@@ -70,12 +74,23 @@ ui <- fluidPage(
         br(),
         plotOutput("nplot"),
         br(),
-        h4(htmlOutput("resultsText")),
+        verbatimTextOutput("lambda_title"),
+        verbatimTextOutput("lambda"),
         br(),
-        div(DT::dataTableOutput("table1"), style = "font-size:75%"),
-      ),
+        verbatimTextOutput("gt_title"),
+        verbatimTextOutput("gentime"),
+        br(),
+        verbatimTextOutput("ssd_title"),
+        verbatimTextOutput("ssd"),
+        br(),
+        verbatimTextOutput("rv_title"),
+        verbatimTextOutput("rv"),
+        br(),
+        verbatimTextOutput("elas_title"),
+        verbatimTextOutput("elas")
+        ),
       
-    ), #sidebaar
+    ), #sidebar
     
     #includeMarkdown("footer.Rmd")
     p("See Folt et al. 2022 ",em("Global Ecology and Conservation"), " for a review of geographic variation of tortoise demographic rates. Note that paper used estimates of 'apparent survival', whereas this model assumes true survival.")
@@ -85,8 +100,6 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
     dat <- eventReactive(input$run, {
-      
-        print(input$run)  # Check if the button click is detected
       
       # Use 'req()' to require certain inputs to perform simulations
       req(input$ma, input$bp, input$f, input$ns, input$ve, input$pf,
@@ -113,6 +126,7 @@ server <- function(input, output, session) {
       
       # Create a demography schedule, with juvenile and mature age classes
       # The model has a pre-breeding census
+      ma <- ma + 1
       demog_sched <- data.frame(x = 1:ma,
                                 sx = rep(NA, length(1:ma)),
                                 mx = rep(NA, length(1:ma)))
@@ -204,8 +218,16 @@ server <- function(input, output, session) {
         } #year
       } #rep
       
+      # Save a vector of demographic rate titles
+      demo_titles <- c(c("Population growth rate (lambda):"),
+                       c("Generation time (years):"),
+                       c("Stable age distribution:"),
+                       c("Reproductive value of ages:"),
+                       c("Elasticities for demographic rates:")
+                       )
+      
       ### Save the data so they can be used
-      list(N_tot, demo_vars)
+      list(N_tot, demo_vars, demo_titles)
       
   }) # end-withProgress
 }) # end-dat
@@ -234,8 +256,8 @@ output$nplot <- renderPlot({
   
   # Create a ggplot with a logarithmic y-axis
   graphs$nplot <- ggplot(df_long, aes(x = Time, y = Count, color = Population)) +
-    geom_line() +
-    labs(x = "Time (years)", y = "Total population") +
+    geom_line(size = 1.5) +
+    labs(x = "Time (years)", y = "Population size (females") +
     ylim(0, max(N_tot)) +
     theme_minimal() +
     theme(legend.position = "none",  # Remove the legend
@@ -249,17 +271,118 @@ output$nplot <- renderPlot({
 
 })
 
-## Summary text
-output$resultsText <- renderUI({
+## Summary text - lambdaa
+output$lambda_title <- renderText({
+  
+  # Recall the parameter name
+  demo_titles <- dat()[[3]]
+  demo_titles[1]
+
+})
+
+
+## Summary text - lambdaa
+output$lambda <- renderText({
   
   # Recall some parameters
   demo_vars <- dat()[[2]]
-
-  str1 <- paste("Mean population growth rate:", round(demo_vars[[1]], 3))
-  str2 <- paste("Generation time (years):", round(demo_vars[[3]], 1))
-  HTML(paste(str1, str2, sep='<br/> <br/>'))
+  
+  # Save lambda
+  round(demo_vars[[1]], 3)
 
 })
+
+## Summary text - generation time
+output$gt_title <- renderText({
+  
+  # Recall the parameter name
+  demo_titles <- dat()[[3]]
+  demo_titles[2]
+  
+})
+
+## Summary text - generation time
+output$gentime <- renderText({
+  
+  # Recall some parameters
+  demo_vars <- dat()[[2]]
+  
+  # Save GT
+  round(demo_vars[[3]], 1)
+  
+})
+
+## Summary text - stable stage distribution
+output$ssd_title <- renderText({
+  
+  # Recall the parameter name
+  demo_titles <- dat()[[3]]
+  demo_titles[3]
+  
+})
+
+## Summary text - stable stage distribution
+output$ssd <- renderText({
+  
+  # Recall some parameters
+  demo_vars <- dat()[[2]]
+  
+  # SSD
+  ssd <- demo_vars[[2]]
+  
+  # Save
+  t(data.frame(names(ssd), round(ssd, 2)))
+  
+})
+
+
+## Summary text - repro value
+output$rv_title <- renderText({
+  
+  # Recall the parameter name
+  demo_titles <- dat()[[3]]
+  demo_titles[4]
+  
+})
+
+## Summary text - reproductive value
+output$rv <- renderText({
+  
+  # Recall some parameters
+  demo_vars <- dat()[[2]]
+  
+  # RV
+  rv <- demo_vars[[4]]
+  
+  # Save 
+  t(data.frame(names(rv), round(rv, 2)))  
+  
+})
+
+
+## Summary text - elasticities
+output$elas_title <- renderText({
+  
+  # Recall the parameter name
+  demo_titles <- dat()[[3]]
+  demo_titles[5]
+  
+})
+
+## Summary text - elasticities
+output$elas <- renderText({
+  
+  # Recall some parameters
+  demo_vars <- dat()[[2]]
+  
+  # Elasticities
+  elas <- demo_vars[[5]]
+  
+  # Save text
+  t(data.frame(names(elas), round(elas, 2)))
+
+})
+
 
 }
 
