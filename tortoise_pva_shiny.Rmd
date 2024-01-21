@@ -20,32 +20,30 @@ pre { /* Code block - determines code spacing between lines */ font-size: 14px;}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Gopher tortoise (*Gopherus polyphemus*) populations experience varying demographic conditions across the species' range in the southeastern United States. I built a flexible tool to allow users to simulate tortoise population growth and population demographic conditions under varying conditions of individual growth rates, survival, and reproduction.
+Gopher tortoise (*Gopherus polyphemus*) populations experience varying demographic conditions across the species' range in the southeastern United States. This page comprises a flexible tool that allows users to simulate tortoise population growth and dynamics under varying conditions of demographic rates. Specifically, populations experience latitudinal variation in maturity age and fecundity, where more southern populations have faster somatic growth rates, reach sexual maturity at young ages, and lay larger clutches of eggs likely due to increased energy assimilation. To accommodate variation in life history, the user can adjust mean estimates of maturity age, fecundity (clutch size), and survival rates of different life history stages (nests, hatchlings, juveniles, adults). The juvenile stage includes all 1-year old animals up to the year prior to the maturity age. The software flexibly 'unwinds' the demographic rates to appropriate ages and projects the population using an age-based model The model is a female-only model and assumes a pre-breeding census.
 
-## Inputs and Outputs
-
-Specify population vital rates in the left panel (age of maturity, survival, fecundity), and simulation features. Then click the 'Run simulations' button to estimate demographic parameters and project the population into the future.
+See Folt et al. 2022 *Global Ecology and Conservation* for a review of geographic variation of tortoise demographic rates.
 
 ```{r pva, echo=FALSE}
 
 library(popbio)
+library(mpmtools)
 
 shinyApp(
   
   fluidPage(
-    #titlePanel("Demographic rates"),
     sidebarLayout(
       sidebarPanel(
         h4(p(strong("Demographic Rates"))),
         numericInput("ma", "Age of maturity:", 18, min = 5, max = 30),
-        numericInput("pf", "Probability that a female lays eggs:", 0.97, 0, 1, step=0.01),
+        numericInput("bp", "Probability that a female lays eggs:", 0.97, 0, 1, step=0.01),
         numericInput("f", "Clutch size:", 6, 0, 25, step=1),
         numericInput("ns", "Probability of nest survival:", 0.35, 0, 1, step=0.01),
-        numericInput("pv", "Probability of egg viability:", 0.35, 0, 1, step=0.01),
-        numericInput("pf", "Probability of female:", 0.35, 0, 1, step=0.01),
+        numericInput("ve", "Probability of egg viability:", 0.85, 0, 1, step=0.01),
+        numericInput("pf", "Probability of female:", 0.5, 0, 1, step=0.01),
         numericInput("s_h", "Probability of hatchling survival:", 0.13, 0, 1, step=0.01),
         numericInput("s_j", "Probability of juvenile survival:", 0.75, 0, 1, step=0.01),
-        numericInput("s_f", "Probability of hatchling survival:", 0.86, 0, 1, step=0.01),
+        numericInput("s_a", "Probability of adult survival:", 0.96, 0, 1, step=0.01),
         numericInput("n", "Initial population size:", 50, 0, 10000, step=1),
         br(),
         h4(p(strong("Simulation Inputs"))),
@@ -58,38 +56,55 @@ shinyApp(
         ),
 
       mainPanel(
-        plotOutput("plot")
+        plotOutput("nplot"),
+        br(),
+        h4(htmlOutput("resultsText")),
+        br(),
+        div(DT::dataTableOutput("table1"), style = "font-size:75%"),
       )
     )
   ),
   
   server <- function(input, output, session) {
     
-      datAdv <- eventReactive(input$run, {
+      dat <- eventReactive(input$run, {
         
-        # # Use 'req()' to require certain inputs to perform simulations
-        # req(input$ma, input$pf, input$f, input$ns, input$pv, input$pf,
-        #     input$s_h, input$s_j, input$s_f,
-        #     # Simulation inputs
-        #     input$nyears, input$nreps)
+          print(input$run)  # Check if the button click is detected
         
-        withProgress(message = "Simulating population growth", {
+        # Use 'req()' to require certain inputs to perform simulations
+        req(input$ma, input$bp, input$f, input$ns, input$ve, input$pf,
+            input$s_h, input$s_j, input$s_a,
+            # Simulation inputs
+            input$nyears, input$nreps)
+        
+        withProgress(message = "Simulating population growth...", {
+        
+        library(statmod)
       
         ### 1) Specify User Inputs 
         
         # Population parameters
         ma <- input$ma
-        pf <- input$pf
+        bp <- input$bp
         f <- input$f
         ns <- input$ns
-        pv <- input$pv
+        ve <- input$ve
         pf <- input$pf
         s_h <- input$s_h
         s_j <- input$s_j
-        s_f <- input$s_f
+        s_a <- input$s_a
+        
+        # Create a demography schedule, with juvenile and mature age classes
+        # The model has a pre-breeding census
+        demog_sched <- data.frame(x = 1:ma,
+                                  sx = rep(NA, length(1:ma)),
+                                  mx = rep(NA, length(1:ma)))
         
         # Specify productivity of juvenile and adult females
-        demog_sched[ma, "mx"] <- bp * f * s_n * ve * pf *s_h
+        demog_sched[1:(ma-1), "mx"] <- 0
+        
+        # Specify productivity of juvenile and adult females
+        demog_sched[ma, "mx"] <- bp * f * ns * ve * pf *s_h
   
         # Specify juvenile and adult survival rates
         demog_sched[1:(ma-1), "sx"] <- s_j
@@ -104,10 +119,16 @@ shinyApp(
         #   demography schedule:
         lam <- mpmtools::lambda1(A)
         ssd <- popbio::stable.stage(A) # Stable stage (age) distribution
+        names(ssd) <- paste0("Age_", 1:length(ssd))
         generation.time <- popbio::generation.time(A) # Generation time
-        rv <- reproductive.value(A)  # Reproductive value
-        elas <- elasticity(A) # Elasticity values
-        elas.values <- c(diag(elas[-1,]), elas[ma-1,ma-1], elas[1,ma-1])
+        rv <- popbio::reproductive.value(A)  # Reproductive value
+        names(rv) <- paste0("Age_", 1:length(rv))
+        elas <- popbio::elasticity(A) # Elasticity values
+        elas.values <- round(c(diag(elas[-1,]), elas[ma-1,ma-1], elas[1,ma-1]), 3)
+        names(elas.values) <- c(paste0("S_", 1:(length(elas.values)-1)), "Fecundity")
+        
+        # Save the demographic variables together
+        demo_vars <- list(lam, ssd, generation.time, rv, elas.values)
         
         
         ### Project and track population structure
@@ -165,56 +186,66 @@ shinyApp(
           } #year
         } #rep
         
-        print("Hello World")
-      
+        ### Save the data so they can be used
+        list(N_tot, demo_vars)
+        
     }) # end-withProgress
   }) # end-dat
       
-  # ## Create an output object where we will save all the graphs and tables 
-  # ##  from the Basic Tool
-  # graphs <- reactiveValues(g1=NULL)
-  # 
-  # ## Summary graph 1 - abundance ------------
-  # output$n <- renderPlot({
-  #   
-  #   # Create and store the graph in graphsBasic object
-  #   graphs$n <- matplot(N_tot, type = 'l', log= "y",
-  #       xlab = 'Time (years)', ylab = 'Total population')
-  #   
-  #   # Print the graph
-  #   graphs$n
-  #   
-  # })
+  ## Create an output object where we will save all the graphs and tables
+  ##  from the Basic Tool
+  graphs <- reactiveValues(nplot = NULL, table1 = NULL)
 
-    output$plot <- renderPlot({
-      matplot(N_tot, type = 'l', log="y",
-        xlab = 'Time (years)', ylab = 'Total population')
-    }, res = 96)
+  ## Summary graph 1 - abundance ------------
+  output$nplot <- renderPlot({
     
+    # Call the data from the simulation run
+    N_tot <- dat()[[1]]
+    
+    # Load ggplot2
+    library(ggplot2)
+    
+    # Convert the matrix to a data frame
+    df <- as.data.frame(N_tot)
+    
+    # Add a column for time (years)
+    df$Time <- 1:50  # Assuming 50 years based on the matrix dimensions
+    
+    # Reshape the data to long format
+    df_long <- tidyr::gather(df, key = "Population", value = "Count", -Time)
+    
+    # Create a ggplot with a logarithmic y-axis
+    graphs$nplot <- ggplot(df_long, aes(x = Time, y = Count, color = Population)) +
+      geom_line() +
+      labs(x = "Time (years)", y = "Total population") +
+      ylim(0, max(N_tot)) +
+      theme_minimal() +
+      theme(legend.position = "none",  # Remove the legend
+            axis.title = element_text(size = 18),
+            axis.line = element_line(size = 1.25),
+            axis.text = element_text(size = 14, color = 1))
+           
+    
+    # Print the graph
+    graphs$nplot
+
+  })
+  
+  ## Summary text
+  output$resultsText <- renderUI({
+    
+    # Recall some parameters
+    demo_vars <- dat()[[2]]
+
+    str1 <- paste("Mean population growth rate:", round(demo_vars[[1]], 3))
+    str2 <- paste("Generation time (years):", round(demo_vars[[3]], 1))
+    HTML(paste(str1, str2, sep='<br/> <br/>'))
+
+  })
+  
   },
 
   options = list(height = 1200)  
 )
 
 ```
-
-
-
-
-It's also possible to embed an entire Shiny application within an R Markdown document using the `shinyAppDir` function. This example embeds a Shiny application located in another directory:
-
-```{r tabsets, echo=FALSE}
-shinyAppDir(
-  system.file("examples/06_tabsets", package = "shiny"),
-  options = list(
-    width = "100%", height = 550
-  )
-)
-```
-
-Note the use of the `height` parameter to determine how much vertical space the embedded application should occupy.
-
-You can also use the `shinyApp` function to define an application inline rather then in an external directory.
-
-In all of R code chunks above the `echo = FALSE` attribute is used. This is to prevent the R code within the chunk from rendering in the document alongside the Shiny components.
-

@@ -85,12 +85,18 @@ A <- make_Leslie_matrix(demog_sched)
 
 # Calculate the asymptotic growth rate of the population governed by this 
 #   demography schedule:
-(lam <- mpmtools::lambda1(A))
-(ssd <- popbio::stable.stage(A)) # Stable stage (age) distribution
-(generation.time <- popbio::generation.time(A)) # Generation time
-(rv <- reproductive.value(A))  # Reproductive value
-elas <- elasticity(A) # Elasticity values
-(elas.values <- c(diag(elas[-1,]), elas[ma-1,ma-1], elas[1,ma-1]))
+lam <- mpmtools::lambda1(A)
+ssd <- popbio::stable.stage(A) # Stable stage (age) distribution
+names(ssd) <- paste0("Age_", 1:length(ssd))
+generation.time <- popbio::generation.time(A) # Generation time
+rv <- popbio::reproductive.value(A)  # Reproductive value
+names(rv) <- paste0("Age_", 1:length(rv))
+elas <- popbio::elasticity(A) # Elasticity values
+elas.values <- round(c(diag(elas[-1,]), elas[ma-1,ma-1], elas[1,ma-1]), 3)
+names(elas.values) <- c(paste0("S_", 1:(length(elas.values)-1)), "Fecundity")
+
+# Save the demographic variables together
+demo_vars <- list(lam, ssd, generation.time, rv, elas.values)
 
 
 ##### Project and track population structure -----
