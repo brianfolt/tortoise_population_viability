@@ -270,7 +270,7 @@ output$nplot <- renderPlot({
   # Create a ggplot with a logarithmic y-axis
   graphs$nplot <- ggplot(df_long, aes(x = Time, y = Count, color = Population)) +
     geom_line(size = 1.5) +
-    labs(x = "Time (years)", y = "Population size (females") +
+    labs(x = "Time (years)", y = "Population size (females)") +
     ylim(0, max(N_tot)) +
     theme_minimal() +
     theme(legend.position = "none",  # Remove the legend
