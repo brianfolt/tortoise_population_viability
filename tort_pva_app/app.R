@@ -52,6 +52,25 @@ make_Leslie_matrix <- function(x, sx = NULL, mx = NULL, model = c("pre", "post")
 
 ##### Specify the UI -----
 ui <- fluidPage(
+  
+  # Give the app a title
+  tags$head(HTML("<title> Tort PVAA Tool </title>")),
+  tags$head(tags$link(rel = "icon", type = "image/png", sizes = "32x32", href = "tortoise3.png")),
+  
+  # ### Create a header with the USGS logo followed by an empty blue background
+  # theme = "www/common.css",
+  # div(class = "header"), #, includeHTML("www/header.html")),
+  # 
+  # # Remove color from default selected tab
+  # tags$head(tags$style(HTML(" 
+  #     .navbar-default .navbar-brand {color: cyan;}
+  #     .navbar-default .navbar-brand:hover {color: grey;}
+  #     .navbar-default .navbar-nav > li > a {color:white;}
+  #     .navbar-default .navbar-nav > .active > a,
+  #     .navbar-default .navbar-nav > .active > a:focus,
+  #     .navbar-default .navbar-nav > .active > a:hover {color: black;background-color: #3c8dbc;}
+  #     .navbar-default {background-color: #3c8dbc !important;}
+  #     .navbar-default:hover {background-color: #3c8dbc !important;}"))),
 
     h4("Tortoise PVA Tool"),
     #includeMarkdown("tort_pva_app/header.Rmd"),
