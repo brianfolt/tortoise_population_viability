@@ -53,26 +53,9 @@ make_Leslie_matrix <- function(x, sx = NULL, mx = NULL, model = c("pre", "post")
 ##### Specify the UI -----
 ui <- fluidPage(
   
-  # Give the app a title
-  tags$head(HTML("<title> Tort PVAA Tool </title>")),
-  tags$head(tags$link(rel = "icon", type = "image/png", sizes = "32x32", href = "tortoise3.png")),
+    tags$head(HTML("<title>Tortoise PVA Tool</title>")),
   
-  # ### Create a header with the USGS logo followed by an empty blue background
-  # theme = "www/common.css",
-  # div(class = "header"), #, includeHTML("www/header.html")),
-  # 
-  # # Remove color from default selected tab
-  # tags$head(tags$style(HTML(" 
-  #     .navbar-default .navbar-brand {color: cyan;}
-  #     .navbar-default .navbar-brand:hover {color: grey;}
-  #     .navbar-default .navbar-nav > li > a {color:white;}
-  #     .navbar-default .navbar-nav > .active > a,
-  #     .navbar-default .navbar-nav > .active > a:focus,
-  #     .navbar-default .navbar-nav > .active > a:hover {color: black;background-color: #3c8dbc;}
-  #     .navbar-default {background-color: #3c8dbc !important;}
-  #     .navbar-default:hover {background-color: #3c8dbc !important;}"))),
-
-    h4("Tortoise PVA Tool"),
+    strong(h4("Tortoise PVA Tool")),
     #includeMarkdown("tort_pva_app/header.Rmd"),
     p(strong("Gopher tortoise"), " populations experience ", strong("varying demographic conditions"), "across the species' range in the southeastern United States. This page comprises a ", strong("flexible tool"), " that allows users to ", strong("simulate tortoise population dynamics"), " under varying conditions of demographic rates. Specifically, populations experience latitudinal variation in maturity age and fecundity, where more southern populations have faster somatic growth rates, reach sexual maturity at young ages, and lay larger clutches of eggs likely due to increased energy assimilation. To accommodate variation in life history, the user can ", strong("adjust mean estimates"), " of maturity age, fecundity (clutch size), and survival rates of different life history stages (nests, hatchlings, juveniles, adults). The juvenile stage includes all 1-year old animals up to the year prior to the maturity age. The software flexibly 'unwinds' the demographic rates to appropriate ages and projects the population using an age-based model. The model is a ",
     strong("female-only model"), " and assumes a ", strong("pre-breeding census.")),
@@ -288,7 +271,7 @@ output$nplot <- renderPlot({
   
   # Create a ggplot with a logarithmic y-axis
   graphs$nplot <- ggplot(df_long, aes(x = Time, y = Count, color = Population)) +
-    geom_line(size = 1.5) +
+    geom_line(linewidth = 1.5) +
     labs(x = "Time (years)", y = "Population size (females)") +
     ylim(0, max(N_tot)) +
     theme_minimal() +
