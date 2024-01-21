@@ -27,7 +27,7 @@ juv <- 1:(ma-1)
 # A product of breeding probability (bp), fecundity (f), nest survival (s_n),
 #   egg viability (ve), probability female (pf), and hatchling survival (s_h).
 bp <- 0.97
-f <- 8
+f <- 6
 s_n <- 0.35
 ve <- 0.85
 pf <- 0.5
@@ -63,8 +63,8 @@ lambda1(A1)
 
 ### Specify alternative conditions
 bp <- 0.97
-f <- 8
-s_n <- 0.35
+f <- 6
+s_n <- 0.50
 ve <- 0.85
 pf <- 0.5
 s_h <- 0.25 #increased from 0.13 (meta-analysis) to 0.25
@@ -81,57 +81,16 @@ demog_sched[ma, "sx"] <- s_a
 # Construct a Leslie matrix from this demography schedule
 A <- make_Leslie_matrix(demog_sched)
 
+## Demographic features
+
 # Calculate the asymptotic growth rate of the population governed by this 
 #   demography schedule:
-lambda1(A)
-
-
-
-##### Population projection -----
-
-## Specify features of simulation
-nreps <- 10
-nyears <- 50
-N <- matrix(0, nyears, nreps)  # initializes totalpop matrix to store trajectories
-
-## Initial population size and structure
-# What is the stable-stage distribution (SSD) of the matrix
-ssd <- stable.stage(A)
-
-# How many individuals in the population?
-n <- 50
-
-# Spread individuals across the SSD
-n_ssd <- ssd * n
-
-# Use poisson draws to randomly populate numbers per stage for each simulation
-#   replicate
-n_i <- matrix(NA, nreps, dim(A)[1])
-for (i in 1:nreps){
-   n_i[i,]  <- rpois(length(n_ssd), n_ssd)
-}
-# rowSums(n_i) # usually between 40-60 females to start
-
-## Partition matrix for simulation
-x <- splitA(A)
-x_T <- x$T
-x_F <- x$F
-
-## Run the simulation!
-for (j in 1:nreps){ # for each replicate
-  n <- n_i[j,] # specify initial population size, randomly drawn above
-  for (i in 1:nyears){ # for each year
-    n <- multiresultm(n, x_T, x_F)
-    N[i,j] <- sum(n)
-  } #year
-} #rep
-matplot(N, type = 'l', log="y",
-        xlab = 'Time (years)', ylab = 'Total population')
-
-# This projection works well at tracking total population size,
-# but does not track population structure through time.
-
-
+(lam <- mpmtools::lambda1(A))
+(ssd <- popbio::stable.stage(A)) # Stable stage (age) distribution
+(generation.time <- popbio::generation.time(A)) # Generation time
+(rv <- reproductive.value(A))  # Reproductive value
+elas <- elasticity(A) # Elasticity values
+(elas.values <- c(diag(elas[-1,]), elas[ma-1,ma-1], elas[1,ma-1]))
 
 
 ##### Project and track population structure -----
@@ -174,8 +133,8 @@ for (j in 1:nreps){ # for each replicate
   n_i_j <- n_i[j,] # specify initial population size, randomly drawn above
   for (i in 1:nyears){ # for each year
     # If it's the first year, specify n_i_j; else,
-    #   specify N_stage from previous yeaar
-    if(i ==1){
+    #   specify N_stage from previous year
+    if(i == 1){
       n_sim <- n_i_j
     } else {
         n_sim <- N_stages[i-1,j,]
@@ -187,4 +146,6 @@ for (j in 1:nreps){ # for each replicate
 matplot(N_tot, type = 'l', log="y",
         xlab = 'Time (years)', ylab = 'Total population')
 
-# This works well, and we can track age-specific abundances
+# This works well, and we can track age-specific abundances.
+
+
