@@ -1,0 +1,4 @@
+---
+output: html_document
+---
+See Folt et al. 2022 *Global Ecology and Conservation* for a review of geographic variation of tortoise demographic rates. Note that paper used estimates of 'apparent survival', whereas this model assumes true survival.
