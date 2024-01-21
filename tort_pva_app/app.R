@@ -171,12 +171,16 @@ server <- function(input, output, session) {
       lam <- popbio::lambda(A)
       ssd <- popbio::stable.stage(A) # Stable stage (age) distribution
       names(ssd) <- paste0("Age_", 1:length(ssd))
+      names(ssd)[length(ssd)] <- paste0("Age_", length(ssd), "_and_older")
       generation.time <- popbio::generation.time(A) # Generation time
       rv <- popbio::reproductive.value(A)  # Reproductive value
       names(rv) <- paste0("Age_", 1:length(rv))
+      names(rv)[length(rv)] <- paste0("Age_", length(rv), "_and_older")
       elas <- popbio::elasticity(A) # Elasticity values
       elas.values <- round(c(diag(elas[-1,]), elas[ma-1,ma-1], elas[1,ma-1]), 3)
       names(elas.values) <- c(paste0("S_", 1:(length(elas.values)-1)), "Fecundity")
+      names(elas.values)[length(elas.values)-1] <- paste0("Age_", length(elas.values)-1, "_and_older")
+      
       
       # Save the demographic variables together
       demo_vars <- list(lam, ssd, generation.time, rv, elas.values)
