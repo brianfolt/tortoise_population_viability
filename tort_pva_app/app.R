@@ -3,6 +3,15 @@
 # This app can be deployed on GitHub pages using instructions from:
 # https://medium.com/@rami.krispin/deploy-shiny-app-on-github-pages-b4cbd433bdc
 
+# Run this code through R:
+# library(shinylive)
+# library(httpuv)
+# shinylive::export(appdir = "tort_pva_app", destdir = "docs")
+# httpuv::runStaticServer("docs/", port=8008) # to test
+# # or visit Rstudio code editor to test manually
+# # commit and push the changes
+# # i have already set up the app to by live at https://brianfolt.github.io/tortoise_population_viability/
+
 # Call a package
 library(popbio)
 
@@ -44,9 +53,10 @@ make_Leslie_matrix <- function(x, sx = NULL, mx = NULL, model = c("pre", "post")
 ##### Specify the UI -----
 ui <- fluidPage(
 
-    #includeMarkdown("header.Rmd"),
-  
-    p(em("Gopherus polyphemus"), "(gopher tortoise) populations experience varying demographic conditions across the species' range in the southeastern United States. This page comprises a flexible tool that allows users to simulate tortoise population growth and dynamics under varying conditions of demographic rates. Specifically, populations experience latitudinal variation in maturity age and fecundity, where more southern populations have faster somatic growth rates, reach sexual maturity at young ages, and lay larger clutches of eggs likely due to increased energy assimilation. To accommodate variation in life history, the user can adjust mean estimates of maturity age, fecundity (clutch size), and survival rates of different life history stages (nests, hatchlings, juveniles, adults). The juvenile stage includes all 1-year old animals up to the year prior to the maturity age. The software flexibly 'unwinds' the demographic rates to appropriate ages and projects the population using an age-based model The model is a female-only model and assumes a pre-breeding census."),
+    h4("Tortoise PVA Tool"),
+    #includeMarkdown("tort_pva_app/header.Rmd"),
+    p(strong("Gopher tortoise"), " populations experience ", strong("varying demographic conditions"), "across the species' range in the southeastern United States. This page comprises a ", strong("flexible tool"), " that allows users to ", strong("simulate tortoise population dynamics"), " under varying conditions of demographic rates. Specifically, populations experience latitudinal variation in maturity age and fecundity, where more southern populations have faster somatic growth rates, reach sexual maturity at young ages, and lay larger clutches of eggs likely due to increased energy assimilation. To accommodate variation in life history, the user can ", strong("adjust mean estimates"), " of maturity age, fecundity (clutch size), and survival rates of different life history stages (nests, hatchlings, juveniles, adults). The juvenile stage includes all 1-year old animals up to the year prior to the maturity age. The software flexibly 'unwinds' the demographic rates to appropriate ages and projects the population using an age-based model. The model is a ",
+    strong("female-only model"), " and assumes a ", strong("pre-breeding census.")),
     sidebarLayout(
       sidebarPanel(
         h4(p(strong("Demographic Rates"))),
@@ -67,7 +77,10 @@ ui <- fluidPage(
         br(),
         actionButton("run", "Perform simulation",
                      class = "btn-success",
-                     style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+                     style="color: #fff; background-color: #337ab7; border-color: #2e6da4"),
+        br(), br(),
+        p("It may take 20-30 seconds to display results.")
+        
         ),
       
       mainPanel(
